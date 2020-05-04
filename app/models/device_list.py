@@ -7,6 +7,8 @@ class DeviceList(Document):
   is_permit = BooleanField(default=False)
   config = DictField()
   config_change_flag = BooleanField(default=False)
+  update_flag = BooleanField(default=False)
+  git_head = StringField()
   def get_alive():
     return DeviceList.objects(create_time__gte=datetime.datetime.now()-datetime.timedelta(minutes=1))
   def get_dict(self):
@@ -24,5 +26,7 @@ class DeviceList(Document):
     with trail: self.is_permit = kwargs['is_permit']
     with trail: self.config = kwargs['config']
     with trail: self.config_change_flag = kwargs['config_change_flag']
+    with trail: self.update_flag = kwargs['update_flag']
+    with trail: self.git_head = kwargs['git_head']
     self.save()
     return self

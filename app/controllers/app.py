@@ -1,7 +1,7 @@
 ######!!!! index.py in  /var/www/html !!!#####
 from flask import Flask, request, session, redirect, url_for, Blueprint, render_template, abort, Response, jsonify
 from pathlib import Path
-import re
+import re,subprocess
 import pymongo
 import time
 import base64
@@ -74,11 +74,20 @@ def main():
     def ip_management():
         is_admin = False
         with trail: is_admin = User.objects(user=session['user']).first().is_admin
+        ip_manage = IpManage.objects().first()
+        if ip_manage == None:
+            ip_manage = {'ip_accept':[],'ip_denied':[]}
+            mode = 'accept'
+        else:
+            mode = ip_manage.mode
+            ip_manage = ip_manage.setting
         return app.render_template(session,
                                     'ip_management.html',
                                     users = User.objects().order_by('id'),
                                     is_admin = is_admin,
-                                    render_menu = menu())
+                                    render_menu = menu(),
+                                    ip_manage = ip_manage,
+                                    mode = mode)
     @app.route('/switch_user_admin',methods=['post'])
     def switch_user_admin():
         params = request.form
@@ -234,6 +243,8 @@ def main():
                 ax.set_title('濕度感測',fontsize=12,color='r')
                 fig.savefig('static/plot_'+str(device.id)+'.png')
         """
+        git_head = subprocess.check_output(['git','ls-remote','--heads','https://github.com/naruto0426/iot_client'],shell=False)
+        git_head = re.sub("b'",'',str(git_head).split('\\t')[0])
         return app.render_template(session,
                                     'index.html',
                                     render_menu=menu(),
@@ -241,7 +252,8 @@ def main():
                                     field_names=field_names,
                                     handle_field_catch=handle_field_catch,
                                     get_field_name=get_field_name,
-                                    get_sensor_data=get_sensor_data)
+                                    get_sensor_data=get_sensor_data,
+                                    git_head=git_head)
     def handle_field_catch(device,field_name):
         try:
             return device['user_agent'][field_name]
@@ -279,7 +291,14 @@ def main():
         time_now = datetime.datetime.now()
         device = None
         with trail: device = DeviceList.objects(id = str(ID)).first()
-        device = DeviceList() if device == None else device
+        ip_manage = IpManage.objects().first()
+        if device == None and ip_manage != None:
+            mode = ip_manage.mode
+            ip_manage = ip_manage.setting
+            if (mode == 'accept' and address in ip_manage['ip_accept']) or (mode == 'denied' and address not in ip_manage['ip_accept']):
+                device = DeviceList(is_permit=True)
+            else:
+                device = DeviceList()
         device.update_attributes(create_time = time_now,
                         update_time = time_now,
                         ip = address,
@@ -297,11 +316,12 @@ def main():
         if device_config != None and not device.config_change_flag:
             device_config = json.loads(device_config)
             device.update_attributes(config = device_config)
+        update_flag = device.update_flag
         if device.config_change_flag:
             device.update_attributes(config_change_flag = False)
-            return {'id':str(device.id),'config_change': json.dumps(device.config)}
+            return {'id':str(device.id),'config_change': json.dumps(device.config),'update_flag': update_flag}
         else:
-            return {'id':str(device.id)}
+            return {'id':str(device.id),'update_flag': update_flag}
     def get_annc():
         annc_setting = AnncSetting.objects()
         if len(annc_setting) == 0:
@@ -338,6 +358,8 @@ def main():
         device_id = request.form.get('id')
         d = None
         with trail: d = DeviceList.objects(id=device_id).first()
+        if d != None and request.form.get('update') == 'finish':
+            d.update_attributes(update_flag=False,git_head=request.form.get('git_head'))
         if d != None and d.is_permit:
             msg = get_annc()
         else:
@@ -356,4 +378,30 @@ def main():
         else:
             annc_setting[0].update(annc_msg=request.form.get('annc_setting'))
         return redirect(url_for('.annc_setting'))
+    @app.route("/update_client",methods=['post'])
+    def update_client():
+        device_id = request.form.get('id')
+        if device_id =='all':
+            ds = DeviceList.objects()
+        else:
+            with trail: ds = DeviceList.objects(id=device_id)
+        if ds != None or ds.first() != None:
+            for d in ds:
+                d.update_attributes(update_flag=True)
+            return 'success'
+        else:
+            return 'failed',500
+    @app.route("/ip_set",methods=['post'])
+    def ip_set():
+        dict_ = request.form.to_dict(flat=False)
+        ip_accept = list(filter(None,dict_['ip-accept[]']))
+        ip_denied = list(filter(None,dict_['ip-denied[]']))
+        if IpManage.objects().first() == None:
+            ip_manage = IpManage()
+        else:
+            ip_manage = IpManage.objects().first()
+        ip_manage.setting = {'ip_accept':ip_accept,'ip_denied':ip_denied}
+        ip_manage.mode = dict_['management_type'][0]
+        ip_manage.save()
+        return redirect(url_for('.ip_management')) 
     return app
