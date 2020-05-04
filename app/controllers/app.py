@@ -280,7 +280,7 @@ def main():
         device = None
         with trail: device = DeviceList.objects(id = str(ID)).first()
         device = DeviceList() if device == None else device
-        device = device.update_attributes(create_time = time_now,
+        device.update_attributes(create_time = time_now,
                         update_time = time_now,
                         ip = address,
                         user_agent = user_agent)
@@ -293,8 +293,15 @@ def main():
                 s_type = ds.get('s_type')
                 s = SensorHistory(s_type=s_type,value=data,device_id=str(device.id),create_time=time_now)
                 s.save()
-        print('id',device.id)
-        return {'id':str(device.id)}
+        device_config = request.form.get('config')
+        if device_config != None and not device.config_change_flag:
+            device_config = json.loads(device_config)
+            device.update_attributes(config = device_config)
+        if device.config_change_flag:
+            device.update_attributes(config_change_flag = False)
+            return {'id':str(device.id),'config_change': json.dumps(device.config)}
+        else:
+            return {'id':str(device.id)}
     def get_annc():
         annc_setting = AnncSetting.objects()
         if len(annc_setting) == 0:
@@ -302,6 +309,30 @@ def main():
         else:
             msg = annc_setting[0]['annc_msg']
         return msg
+    @app.route("/get_config",methods=['post'])
+    def get_config():
+        device_id = request.form.get('device_id')
+        d = None
+        with trail: d = DeviceList.objects(id=device_id).first()
+        if d != None:
+            return d.config
+        else:
+            return 'failed',404
+    @app.route("/save_config",methods=['post'])
+    def save_config():
+        dict_ = request.form.to_dict(flat=True)
+        print(dict_)
+        device_id = dict_.get('device_id')
+        d = None
+        with trail: d = DeviceList.objects(id=device_id).first()
+        if d != None:
+            d_config = json.loads(dict_.get('config'))
+            print(d_config)
+            print(dict_)
+            d.update_attributes(config=d_config,config_change_flag=True)
+            return 'success'
+        else:
+            return 'failed',404
     @app.route("/annc",methods=['post','get'])
     def annc():
         device_id = request.form.get('id')

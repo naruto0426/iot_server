@@ -5,6 +5,8 @@ class DeviceList(Document):
   create_time = DateTimeField()
   update_time = DateTimeField()
   is_permit = BooleanField(default=False)
+  config = DictField()
+  config_change_flag = BooleanField(default=False)
   def get_alive():
     return DeviceList.objects(create_time__gte=datetime.datetime.now()-datetime.timedelta(minutes=1))
   def get_dict(self):
@@ -19,5 +21,8 @@ class DeviceList(Document):
     with trail: self.update_time = kwargs['update_time']
     with trail: self.ip =  kwargs['ip']
     with trail: self.user_agent = kwargs['user_agent']
+    with trail: self.is_permit = kwargs['is_permit']
+    with trail: self.config = kwargs['config']
+    with trail: self.config_change_flag = kwargs['config_change_flag']
     self.save()
     return self

@@ -2,13 +2,16 @@
 {% block content %}
 {{render_menu|safe}}
 <style type="text/css">
-    .flot-placeholder{width:350px;height:300px;}        
+    .flot-placeholder{width:350px;height:300px;}
+    input[type="text"] {
+      margin: 0 0.3em;
+    }     
 </style>
 <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="http://www.pureexample.com/js/flot/excanvas.min.js"></script><![endif]-->
 <script type="text/javascript" src="http://www.pureexample.com/js/flot/jquery.flot.min.js"></script>
 <script type="text/javascript">
   function process_annc(ele){
-    var parent_tr = $(ele).parents('tr').eq(-1)
+    var parent_tr = $(ele).parents('tr').eq(0)
     $.ajax({
           url : "/switch_device_permit",
           data : {"device_id": parent_tr.data("id"),
@@ -39,6 +42,43 @@
       process_annc(this)
     })
   })
+  function add_config(ele){
+    $(ele).before(field('',''))
+  }
+  function field(v1,v2){
+    return "<div style=\"margin-bottom: 1em;display: flex;flex-wrap: wrap;\"><input onblur=\"check_blank(this)\" type=\"text\" value=\""+v1+"\">"+':'+"<input class=\"value\" type=\"text\" name=\""+v1+"\" value=\""+v2+"\"><br><button type=\"button\" class=\"btn btn-warning\" onclick=\"delete_config(this)\">刪除</button></div>"
+  }
+  function check_blank(ele){
+    if ($(ele).val()==''){
+      alert('此欄位必填')
+    }else{
+      $(ele).parents('div').eq(0).find('.value').attr('name',$(ele).val())
+    }
+  }
+  function delete_config(ele){
+    $(ele).parents('div').eq(0).remove()
+  }
+  function get_config(id){
+    $.ajax({
+      url : "/get_config",
+      data : {"device_id": id},
+      dataType : "json",
+      type : "post",
+      error : function(data){
+        alert('something went wrong')
+      },
+      success: function(data){
+        var tmp = "<form action=\"/save_config\" method=\"post\" name=\"config\" data-did=\""+id+"\">"
+        for (k in data){
+          tmp += field(k,data[k])
+        }
+        tmp += "<button class=\"btn btn-primary\" type=\"button\" onclick=\"add_config(this)\">新增</button>"
+        tmp += "</form>"
+        $('#dialog').html(tmp)
+        $('#dialog').dialog('open')
+      }
+    })
+  }
 </script>
 <script type="text/javascript">
   var options = {
@@ -82,6 +122,7 @@
       return fmt;
   }
 </script>
+<div id="dialog"></div>
 <table class="table table-striped table-primary">
   <thead>
     <tr>
@@ -103,7 +144,7 @@
           {{d['ip']|safe}}
         </td>
         <td>
-          {{handle_field_catch(d,'node')|safe}}
+          <a href="javascript:get_config('{{d['id']}}')">{{handle_field_catch(d,'node')|safe}}</a>
           <ul>
             {% for field_name in field_names %}
               <li>
@@ -165,24 +206,55 @@
 <div id="tooltip" style="position: absolute; border: 1px solid rgb(255, 221, 221); padding: 2px; background-color: #3c54ac;color:#fff; opacity: 0.8; top: 274px; left: 371px; display: none;"></div>
 <script type="text/javascript">
   $(document).ready(function () {
-      
-      $(".flot-placeholder").bind("plothover", function (event, pos, item) {
+    var window_width = window.innerWidth
+    var window_height = window.innerHeight
+    $("#dialog").dialog({
+      autoOpen: false,
+      show: "blind",
+      model: true,
+      hide: "explode",
+      width: window_width*0.7,
+      height: window_height*0.6,
+      buttons:{
+        '送出':function(){
+          var formdata = $('form[name="config"]').serializeArray()
+          var config_data = {}
+          for (d=formdata.length-1;d>=0;d--){
+            config_data[formdata[d]['name']] = formdata[d]['value']
+          }
+          $.ajax({
+            url : $('form[name="config"]').attr('action'),
+            data : {"device_id": $('form[name="config"]').attr('data-did'),'config':JSON.stringify(config_data)},
+            dataType : "text",
+            type : "post",
+            error : function(data){
+              alert('something went wrong')
+            },
+            success: function(data){
+              $('#dialog').html('')
+              $('#dialog').dialog('close')
+            }
+          })
+        }
+      }
+    });
+    $(".flot-placeholder").bind("plothover", function (event, pos, item) {
 
-          if (!pos.x || !pos.y) {
-              return;
-          }
-          if (item) {
-              var x = item.datapoint[0].toFixed(2),
-                  y = item.datapoint[1].toFixed(2);
-              var date = new Date(+x)
-              $("#tooltip").html("[" + date.format("yyyy-MM-dd hh:mm:ss") + "," + y + "]")
-                  .css({top: item.pageY+5, left: item.pageX+5})
-                  .fadeIn(200);
-          } else {
-              $("#tooltip").hide();
-          }
-          
-      });
+        if (!pos.x || !pos.y) {
+            return;
+        }
+        if (item) {
+            var x = item.datapoint[0].toFixed(2),
+                y = item.datapoint[1].toFixed(2);
+            var date = new Date(+x)
+            $("#tooltip").html("[" + date.format("yyyy-MM-dd hh:mm:ss") + "," + y + "]")
+                .css({top: item.pageY+5, left: item.pageX+5})
+                .fadeIn(200);
+        } else {
+            $("#tooltip").hide();
+        }
+        
+    });
   });
 </script>
 {% endblock %}
