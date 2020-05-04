@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+{% block content %}
+{{render_menu|safe}}
+{% if is_admin %}
+  <script type="text/javascript">
+    function process_annc(ele){
+      var parent_tr = $(ele).parents('tr').eq(-1)
+      $.ajax({
+            url : "/switch_user_admin",
+            data : {"user_id": parent_tr.data("id"),
+                    "is_admin": $(ele).prop('checked')},
+            dataType : "json",
+            type : "post",
+            error : function(data){
+              alert('something went wrong')
+            },
+            success: function(data){
+              if(data['status']=='failed'){
+                alert(data['text'])
+              }
+            }
+          })
+    }
+    $(function(){
+      $('.admin_switch').bootstrapToggle({
+        on: '是',
+        off: '否',
+        size: 'mini',
+        onstyle: 'danger',
+        offstyle: 'outline-danger',
+        width: '4em',
+        height: '2em'
+      });
+      $('.admin_switch').change(function(){
+        process_annc(this)
+      })
+      $('.delete_user').click(function(){
+        var parent_tr = $(this).parents('tr').eq(-1)
+        $.ajax({
+              url : "/delete_user",
+              data : {"user_id": parent_tr.data("id")},
+              dataType : "json",
+              type : "post",
+              error : function(data){
+                alert('something went wrong')
+              },
+              success: function(data){
+                if(data['status']=='failed'){
+                  alert(data['text'])
+                }else{
+                  parent_tr.hide()
+                }
+              }
+            })
+      })
+    })
+  </script>
+  <form class="form-horizontal form">
+	<div class="control-group">
+	    <label class="control-label">
+		  IP管理模式
+		</label>
+		<div class="controls">
+		  <div class="form-check">
+			  <input class="form-check-input radio_input" type="radio" name="management_type" id="accept_btn" value="accept" checked>
+			  <label class="form-check-label" for="accept_btn">
+				允許IP設定(沒在列表中的ip將無法連線)
+			  </label>
+		  </div>
+		  <div class="form-check">
+			  <input class="form-check-input radio_input" type="radio" name="management_type" id="denied_btn" value="denied">
+			  <label class="form-check-label" for="denied_btn">
+				拒絕IP設定(沒在列表中的ip才可連線)
+			  </label>
+		  </div>
+		</div>
+	</div>
+	<div class="control-group">
+		<label class="control-label accept_text">
+		  允許IP
+		</label>
+		<label class="control-label denied_text">
+		  拒絕IP
+		</label>
+		<div class="controls accept_text">
+		  <div class="texts"></div>
+		  <input class="add_text" type="text" size="20">
+		  <a href="#" class="btn btn-primary add_btn">add</a>
+		</div>
+		<div class="controls denied_text">
+		  <div class="texts"></div>
+		  <input class="add_text" type="text" size="20">
+		  <a href="#" class="btn btn-primary add_btn">add</a>
+		</div>
+	</div>
+  </form>
+   <style type="text/css">
+	.radio_input{
+	  position: relative;
+	  float: left;
+	}
+	.denied_text{
+	  display: none;
+	}
+   </style>
+   <script>
+	$(document).ready(function(){
+		$('.add_btn').click(function(){
+			var text = $(this).siblings('.add_text').val();
+			if(text != ""){
+				$(this).siblings('.texts').append(text+"<br>");
+				$(this).siblings('.add_text').val('');
+			}
+		});
+		$('#denied_btn').click(function(){
+			$('.denied_text').css('display','block');
+			$('.accept_text').css('display','none');
+		});
+		$('#accept_btn').click(function(){
+			$('.denied_text').css('display','none');
+			$('.accept_text').css('display','block');
+		});
+	});
+   </script>
+{% else %}
+  <style type="text/css">
+    #content{
+      background: #a9d0f2;
+    }
+    .no_permission{    
+      display: flex;
+      justify-content: center;
+      height: 100%;
+    }
+  </style>
+  <div class='no_permission'>
+    你沒有管理者權限
+  </div>
+{% endif %}
+{% endblock %}

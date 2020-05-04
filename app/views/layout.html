@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+	<script src="/assets/jquery.min.js"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+  <script src="/assets/popper.min.js" crossorigin="anonymous"></script>
+  <link href="http://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
+  <script src="http://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
+  {% block head %}
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+  {% endblock %}
+  <style type="text/css">
+    form.form-horizontal.form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .control-group {
+      display: inline-flex;
+      margin: 1em 0;
+    }
+    .controls {
+      margin-left: 2em;
+    }
+  	#content{
+  		min-height: 90vh;
+  	}
+  	#footer{
+  		display: flex;
+	    align-items: center;
+	    justify-content: center;
+  	}
+    *{
+      word-break: break-word;
+    }
+    @media (min-width: 992px){
+      .navbar-collapse{
+        justify-content: flex-end;
+      }
+    }
+    @media (max-width: 991px){
+      .navbar-toggler{
+        right: 5px;
+        position: absolute;
+        top: 5px;
+      }
+      .navbar{
+        text-align: center;
+      }
+      .navbar-brand{
+        width: 100%;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+	<div id="content">{% block content %}{% endblock %}</div>
+  <div id="footer">
+    {% block footer %}
+    &copy; Copyright 2020
+    {% endblock %}
+  </div>
+</body>
+</html>

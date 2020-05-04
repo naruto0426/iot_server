@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block content %}
+{{render_menu|safe}}
+<fieldset style=" margin: 15px; border: 2px solid; padding: 20px; ">
+  <legend style="margin: 40px;width: auto;">公告設定</legend>
+  <form method='post'>
+    <label for='annc_setting' style='float: left;margin-right:5px;'>發送公告內容:</label>
+    <textarea id='annc_setting' name='annc_setting' style='width: 300px;height: 100px;'>
+      {{msg|safe}}
+    </textarea>
+    <div style='clear:both;'>
+      <button type='submit'>送出</button>
+    </div>
+  </form>
+</fieldset>
+{% endblock %}

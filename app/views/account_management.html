@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+{% block content %}
+{{render_menu|safe}}
+{% if is_admin %}
+  <script type="text/javascript">
+    function process_annc(ele){
+      var parent_tr = $(ele).parents('tr').eq(-1)
+      $.ajax({
+            url : "/switch_user_admin",
+            data : {"user_id": parent_tr.data("id"),
+                    "is_admin": $(ele).prop('checked')},
+            dataType : "json",
+            type : "post",
+            error : function(data){
+              alert('something went wrong')
+            },
+            success: function(data){
+              if(data['status']=='failed'){
+                alert(data['text'])
+              }
+            }
+          })
+    }
+    $(function(){
+      $('.admin_switch').bootstrapToggle({
+        on: '是',
+        off: '否',
+        size: 'mini',
+        onstyle: 'danger',
+        offstyle: 'outline-danger',
+        width: '4em',
+        height: '2em'
+      });
+      $('.admin_switch').change(function(){
+        process_annc(this)
+      })
+      $('.delete_user').click(function(){
+        var parent_tr = $(this).parents('tr').eq(-1)
+        $.ajax({
+              url : "/delete_user",
+              data : {"user_id": parent_tr.data("id")},
+              dataType : "json",
+              type : "post",
+              error : function(data){
+                alert('something went wrong')
+              },
+              success: function(data){
+                if(data['status']=='failed'){
+                  alert(data['text'])
+                }else{
+                  parent_tr.hide()
+                }
+              }
+            })
+      })
+    })
+  </script>
+  <table class="table table-striped table-primary">
+    <thead>
+      <tr>
+        <th>
+          帳號
+        </th>
+        <th>
+          管理者權限
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+        <tr data-id="{{user.id}}">
+          <td>
+            {{user.user}}
+          </td>
+          <td>
+            {% if user.user != 'admin' %}
+			  {% if user.user != session['user'] %}
+				  {% set tmp = 'checked' if user.is_admin else '' %}
+				  <input type="checkbox" class="admin_switch" {{tmp}}>
+				  <button type="button" class="delete_user btn btn-danger">刪除使用者</button>
+			  {% else %}
+			    是
+			  {% endif %}
+            {% else %}
+              是
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <style type="text/css">
+    #content{
+      background: #a9d0f2;
+    }
+    .no_permission{    
+      display: flex;
+      justify-content: center;
+      height: 100%;
+    }
+  </style>
+  <div class='no_permission'>
+    你沒有管理者權限
+  </div>
+{% endif %}
+{% endblock %}

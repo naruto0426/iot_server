@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block head %}
+  <link rel="stylesheet" href="/assets/style.css" type="text/css">
+  <script src="/assets/app.js"></script>
+{% endblock %}
+{% block content %}
+<form action="/register_auth" method="POST" autocomplete="off">
+  <input type="hidden" name="refer_url" value="{{refer_url|safe}}">
+	<div class="Box">
+		<div class="Box-screen">
+			<div class="app-title">
+				<h1>Register page</h1>
+			</div>
+ 
+			<div class="Box-form">
+				<div class="control-group">
+					<input type="text" class="Box-field" placeholder="帳號" name="user">
+					<label class="Box-field-icon fui-user" for="Box-name"></label>
+				</div>
+				<div class="control-group">
+					<input type="password" class="Box-field" placeholder="密碼" name="password">
+					<label class="Box-field-icon fui-user" for="Box-name"></label>
+				</div>
+ 
+      	<input type="submit" value="提交" class="btn btn-primary btn-large btn-block" >
+			</div>
+		</div>
+	</div>
+</form>
+{% endblock %}
