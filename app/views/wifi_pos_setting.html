@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+{% block content %}
+{{render_menu|safe}}
+{% if is_admin %}
+  <style type="text/css">
+    .text_group{
+      margin: 0.5em 0;
+    }
+    .group{
+      border: 0.2em solid #c34b95;
+      margin: 1em;
+      padding: 0.5em;
+    }
+  </style>
+  <form class="form-horizontal form" action="/wifi_pos_set" method="post">
+    {% for wifi in wifi_pos %}
+      <div class="group">
+      	<div class="control-group">
+          <label class="control-label">
+      		  wifi名稱:
+      		</label>
+      		<div class="controls">
+      		  <input type="text" name="ssid[]" value="{{wifi.ssid}}" placeholder="wifi名稱">
+      		</div>
+      	</div>
+        <div class="control-group">
+          <label class="control-label">
+            Mac adrress:
+          </label>
+          <div class="controls">
+            <input type="text" name="bssid[]" value="{{wifi.bssid}}" placeholder="mac adrress">
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label">
+            位置(單位=cm):
+          </label>
+          <div class="controls">
+            <input type="number" name="x[]" value="{{wifi.pos['x']}}" placeholder="x">
+            <input type="number" name="y[]" value="{{wifi.pos['y']}}" placeholder="y">
+            <input type="number" name="z[]" value="{{wifi.pos['z']}}" placeholder="z">
+          </div>
+        </div>
+        <button type="button" class="btn btn-warning delete_btn" onclick="delete_btn(this)">delete</button>
+      </div>
+    {% endfor %}
+    <button class="btn btn-primary add_btn" type="button" style="margin-bottom: 1em;">新增</button>
+    <input type="submit" value="送出" class="btn btn-info">
+  </form>
+  <div style="display: none;" class="tmp">
+    <div class="group">
+      <div class="control-group">
+        <label class="control-label">
+          wifi名稱:
+        </label>
+        <div class="controls">
+          <input type="text" name="ssid[]" placeholder="wifi名稱">
+        </div>
+      </div>
+      <div class="control-group">
+        <label class="control-label">
+          Mac adrress:
+        </label>
+        <div class="controls">
+          <input type="text" name="bssid[]" placeholder="mac adrress">
+        </div>
+      </div>
+      <div class="control-group">
+        <label class="control-label">
+          位置(單位=cm):
+        </label>
+        <div class="controls">
+          <input type="number" name="x[]" placeholder="x">
+          <input type="text" name="y[]" placeholder="y">
+          <input type="text" name="z[]" placeholder="z">
+        </div>
+      </div>
+      <button type="button" class="btn btn-warning delete_btn" onclick="delete_btn(this)">delete</button>
+    </div>
+  </div>
+  <style type="text/css">
+	.radio_input{
+	  position: relative;
+	  float: left;
+	}
+	.denied_text{
+	  display: none;
+	}
+  </style>
+  <script>
+    function delete_btn(ele){
+      $(ele).parent().remove()
+
+      console.log(ele)
+    }
+  	$(document).ready(function(){
+  		$('.add_btn').click(function(){
+  			$('.add_btn').before($('.tmp').html())
+  		});
+  	});
+   </script>
+{% else %}
+  <style type="text/css">
+    #content{
+      background: #a9d0f2;
+    }
+    .no_permission{    
+      display: flex;
+      justify-content: center;
+      height: 100%;
+    }
+  </style>
+  <div class='no_permission'>
+    你沒有管理者權限
+  </div>
+{% endif %}
+{% endblock %}

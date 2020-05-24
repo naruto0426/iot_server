@@ -47,7 +47,7 @@
         {% for v in ip_manage['ip_accept'] %}
           <div class="text_group">
             <input class="add_text" name="ip-accept[]" type="text" size="20" value="{{v}}">
-            <button type="button" class="btn btn-warning delete_btn">delete</button>
+            <button type="button" onclick="delete_btn(this)" class="btn btn-warning delete_btn">delete</button>
             <br>
           </div>
         {% endfor %}  
@@ -60,7 +60,7 @@
         {% for v in ip_manage['ip_denied'] %}
           <div class="text_group">
             <input class="add_text" name="ip-denied[]" type="text" size="20" value="{{v}}">
-            <button type="button" class="btn btn-warning delete_btn">delete</button>
+            <button type="button" onclick="delete_btn(this)" class="btn btn-warning delete_btn">delete</button>
             <br>
           </div>
         {% endfor %}  
@@ -72,43 +72,43 @@
   <input type="submit" value="送出" class="btn btn-info">
   </form>
    <style type="text/css">
-	.radio_input{
-	  position: relative;
-	  float: left;
-	}
-	.denied_text{
-	  display: none;
-	}
+  	.radio_input{
+  	  position: relative;
+  	  float: left;
+  	}
+  	.denied_text{
+  	  display: none;
+  	}
    </style>
    <script>
-	$(document).ready(function(){
-		$('.add_btn').click(function(){
-			var text = $(this).siblings('.add_text').val();
-			if(text != ""){
-        if ($(this).parents('div.controls').eq(0).hasClass('accept_text')){
-          $(this).siblings('.texts').append("<div class=\"text_group\"><input size=\"20\" type=\"text\" name=\"ip-accept[]\" value=\""+text+"\">"+"<button type=\"button\" class=\"btn btn-warning delete_btn\">delete</button><br></div>");
-        }else{
-          $(this).siblings('.texts').append("<div class=\"text_group\"><input size=\"20\" type=\"text\" name=\"ip-denied[]\" value=\""+text+"\">"+"<button type=\"button\" class=\"btn btn-warning delete_btn\">delete</button><br></div>");
-        }
-				$(this).siblings('.add_text').val('');
-			}
-		});
-    $('.delete_btn').click(function(){
-      $(this).parent().remove()
-    });
-		$('#denied_btn').click(function(){
-			$('.denied_text').css('display','block');
-			$('.accept_text').css('display','none');
-		});
-		$('#accept_btn').click(function(){
-			$('.denied_text').css('display','none');
-			$('.accept_text').css('display','block');
-		});
-    if (!$('#accept_btn').prop('checked')){
-      $('.denied_text').css('display','block');
-      $('.accept_text').css('display','none');
+    function delete_btn(ele){
+      $(ele).parent().remove()
     }
-	});
+  	$(document).ready(function(){
+  		$('.add_btn').click(function(){
+  			var text = $(this).siblings('.add_text').val();
+  			if(text != ""){
+          if ($(this).parents('div.controls').eq(0).hasClass('accept_text')){
+            $(this).siblings('.texts').append("<div class=\"text_group\"><input size=\"20\" type=\"text\" name=\"ip-accept[]\" value=\""+text+"\">"+"<button type=\"button\" onclick=\"delete_btn(this)\" class=\"btn btn-warning delete_btn\">delete</button><br></div>");
+          }else{
+            $(this).siblings('.texts').append("<div class=\"text_group\"><input size=\"20\" type=\"text\" name=\"ip-denied[]\" value=\""+text+"\">"+"<button type=\"button\" onclick=\"delete_btn(this)\" class=\"btn btn-warning delete_btn\">delete</button><br></div>");
+          }
+  				$(this).siblings('.add_text').val('');
+  			}
+  		});
+  		$('#denied_btn').click(function(){
+  			$('.denied_text').css('display','block');
+  			$('.accept_text').css('display','none');
+  		});
+  		$('#accept_btn').click(function(){
+  			$('.denied_text').css('display','none');
+  			$('.accept_text').css('display','block');
+  		});
+      if (!$('#accept_btn').prop('checked')){
+        $('.denied_text').css('display','block');
+        $('.accept_text').css('display','none');
+      }
+  	});
    </script>
 {% else %}
   <style type="text/css">

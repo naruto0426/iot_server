@@ -14,7 +14,9 @@ from os.path import dirname
 sys.path.append(os.path.abspath(dirname('../../')))
 import trail as trail_m
 from models import *
-import matplotlib.pyplot as plt
+import math
+import numpy as np
+from scipy.optimize import root,fsolve,least_squares,minimize,fsolve
 
 class AppBlueprint(Blueprint):
     def render_template(self, session, name, **kwargs):
@@ -24,9 +26,21 @@ class AppBlueprint(Blueprint):
         with trail: kwargs['current_user'] = current_user['user']
         with trail: kwargs['is_admin'] = current_user.is_admin
         return render_template(name, **kwargs)
+class tmp():
+    def __init__(self, wifi_pos,wifi_macs,pos):
+        self.wifi_pos = wifi_pos
+        self.wifi_macs = wifi_macs
+        self.pos = pos
 def main():
     trail = trail_m.main()
     app = AppBlueprint('', __name__, template_folder='../views')
+    all_wifi_pos = WifiPos.objects()
+    all_pos = {}
+    for tp in all_wifi_pos:
+        all_pos[tp['bssid']] = tp['pos']
+    def get_wifi_mac(w):
+        return w.bssid
+    cache = tmp(all_wifi_pos,list(map(get_wifi_mac,all_wifi_pos)),all_pos)
     def get_field_name(field_name):
         switcher = {
             'system': "系統",
@@ -43,6 +57,71 @@ def main():
         for value in values:
             flag = flag & (target != value)
         return flag
+    def cal_d(frequency,signal):
+        return (10 ** ((27.55 - (20 * math.log(frequency,10)) - signal)/20))
+    def cal_position_from_minus(vars,*args):
+        d1 = args[0]['d']
+        d2 = args[1]['d']
+        d3 = args[2]['d']
+        x1 = args[0]['x']
+        y1 = args[0]['y']
+        z1 = args[0]['z']
+        x2 = args[1]['x']
+        y2 = args[1]['y']
+        z2 = args[1]['z']
+        x3 = args[2]['x']
+        y3 = args[2]['y']
+        z3 = args[2]['z']
+        x = vars[0]
+        y = vars[1]
+        z = vars[2]
+        tp1 = (2*x-x1-x2)*(x2-x1)+(2*y-y1-y2)*(y2-y1)+(2*z-z1-z2)*(z2-z1)+d2**2-d1**2 #(1)-(2)
+        tp2 = (2*x-x2-x3)*(x3-x2)+(2*y-y2-y3)*(y3-y2)+(2*z-z2-z3)*(z3-z2)+d3**2-d2**2 #(2)-(3)
+        tp3 = (2*x-x1-x3)*(x3-x1)+(2*y-y1-y3)*(y3-y1)+(2*z-z1-z3)*(z3-z1)+d3**2-d1**2 #(1)-(3)
+        return [tp1,tp2,tp3]
+    def cal_position(vars,*args):
+        d1 = args[0]['d']
+        d2 = args[1]['d']
+        d3 = args[2]['d']
+        x1 = args[0]['x']
+        y1 = args[0]['y']
+        z1 = args[0]['z']
+        x2 = args[1]['x']
+        y2 = args[1]['y']
+        z2 = args[1]['z']
+        x3 = args[2]['x']
+        y3 = args[2]['y']
+        z3 = args[2]['z']
+        x = vars[0]
+        y = vars[1]
+        z = vars[2]
+        e1 = (x-x1)**2+(y-y1)**2+(z-z1)**2-d1**2
+        e2 = (x-x2)**2+(y-y2)**2+(z-z2)**2-d2**2
+        e3 = (x-x3)**2+(y-y3)**2+(z-z3)**2-d3**2
+        return [e1,e2,e3]
+    def cal_position_from_wifi(args,now_pos):
+        sol3_root_fake = least_squares(fun=cal_position_from_minus,x0=[0,0,0],args=(args[0],args[1],args[2]),x_scale=[5,5,5])
+        sol3_root_real = fsolve(func=cal_position,x0=sol3_root_fake.x,args=(args[0],args[1],args[2]))
+        if now_pos[0] == None:
+            return sol3_root_real
+        else:
+            x_r,y_r,z_r = sol3_root_real
+            return [(x_r+now_pos[0])/2,(y_r+now_pos[1])/2,(z_r+now_pos[2])/2]
+    def position(data_wifi_infos):
+        temp_wifi_infos = data_wifi_infos
+        wifi_infos = []
+        for wifi_info in temp_wifi_infos:
+            if wifi_info['bssid'] in cache.wifi_macs:
+                data = cache.pos[wifi_info['bssid']]
+                wifi_infos += [{'d':cal_d(wifi_info['f'],wifi_info['signal']),'x':data['x'],'y':data['y'],'z':data['z']}]
+        length = len(wifi_infos)
+        if length<3:
+            return '無法計算'
+        else:
+            now_pos = [None,None,None]
+            for i in range(length-2):
+                now_pos = cal_position_from_wifi(wifi_infos[i:i+3],now_pos)
+            return f'({int(now_pos[0])},{int(now_pos[1])},{int(now_pos[2])})'
     @app.before_request
     def check_valid_login():
         if (User.objects.first() == None):
@@ -253,7 +332,8 @@ def main():
                                     handle_field_catch=handle_field_catch,
                                     get_field_name=get_field_name,
                                     get_sensor_data=get_sensor_data,
-                                    git_head=git_head)
+                                    git_head=git_head,
+                                    position=position)
     def handle_field_catch(device,field_name):
         try:
             return device['user_agent'][field_name]
@@ -287,6 +367,7 @@ def main():
         else:
             address = request.remote_addr
         user_agent = json.loads(base64.b64decode(request.form.get('data')).decode('UTF-8'))
+        wifi_infos = json.loads(request.form.get('wifi_infos'))
         ID = request.form.get('id')
         time_now = datetime.datetime.now()
         device = None
@@ -302,7 +383,8 @@ def main():
         device.update_attributes(create_time = time_now,
                         update_time = time_now,
                         ip = address,
-                        user_agent = user_agent)
+                        user_agent = user_agent,
+                        wifi_infos = wifi_infos)
         sensor_data = request.form.get('sensor_data')
         print(sensor_data)
         if sensor_data != None:
@@ -403,5 +485,45 @@ def main():
         ip_manage.setting = {'ip_accept':ip_accept,'ip_denied':ip_denied}
         ip_manage.mode = dict_['management_type'][0]
         ip_manage.save()
-        return redirect(url_for('.ip_management')) 
+        return redirect(url_for('.ip_management'))
+    @app.route("/wifi_pos_setting",methods=['get'])
+    def wifi_pos_setting():
+        wifi_pos = cache.wifi_pos
+        is_admin = False
+        with trail: is_admin = User.objects(user=session['user']).first().is_admin
+        return app.render_template(session,
+                                    'wifi_pos_setting.html',
+                                    is_admin = is_admin,
+                                    render_menu = menu(),
+                                    wifi_pos = wifi_pos)
+    @app.route("/wifi_pos_set",methods=['post'])
+    def wifi_pos_set():
+        dict_ = request.form.to_dict(flat=False)
+        print(dict_)
+        length = 0
+        with trail: length = len(dict_['ssid[]'])
+        xs = dict_['x[]']
+        ys = dict_['y[]']
+        zs = dict_['z[]']
+        bssids = dict_['bssid[]']
+        ssids = dict_['ssid[]']
+        WifiPos.objects().delete()
+        for i in range(length):
+            x = xs[i]
+            y = ys[i]
+            z = zs[i]
+            bssid = bssids[i] 
+            ssid = ssids[i]
+            wifi_pos = WifiPos(ssid=ssid,bssid=bssid,pos={'x':float(x),'y':float(y),'z':float(z)})
+            wifi_pos.save()
+        wifi_poses = WifiPos.objects()
+        cache.wifi_pos = wifi_poses
+        all_pos = {}
+        wifi_macs = []
+        for tp in wifi_poses:
+            all_pos[tp['bssid']] = tp['pos']
+            wifi_macs += get_wifi_mac(tp)
+        cache.wifi_macs = wifi_macs
+        cache.pos = all_pos
+        return  redirect(url_for('.wifi_pos_setting'))
     return app

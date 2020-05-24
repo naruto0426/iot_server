@@ -134,6 +134,7 @@
       <th>電腦名稱</th>
       <th>連線允許</th>
       <th>數據圖</th>
+      <th>位置</th>
     </tr>
   </thead>
   <tbody>
@@ -206,6 +207,9 @@
             })
           </script>
           {% endif %}
+        </td>
+        <td>
+          {{position(d['wifi_infos'])}}
         </td>
       </tr>
     {% endfor %}
